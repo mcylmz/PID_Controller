@@ -1,5 +1,5 @@
 #include "PID.h"
-
+#include <cmath>
 
 PIDController::PIDController()
 {
@@ -8,6 +8,9 @@ PIDController::PIDController()
 
     differentiator_ = 0.0;
     prevMeasurement_ = 0.0;
+    
+    e0_ = e1_ = e2_ = 0.0;
+    y0_ = y1_ = y2_ = 0.0;
     
     output_ = 0.0;
 }
@@ -49,6 +52,42 @@ float PIDController::computeControlSignal(float setpoint, float measurement)
     prevError_ = currentError;
     prevMeasurement_ = measurement;
 
+    return output_;
+}
+
+float PIDController::derivativeFilteredControlSignal(float setpoint, float measurement)
+{
+    float K;
+    float a0, a1, a2;
+    float b0, b1, b2;
+    
+    setSampleTime(1.0);
+    K = 2 / T_;
+
+    b0 = pow(K, 2) * Kp_ + K * Ki_ + Ki_ * N_ + K * Kp_ * N_ + pow(K, 2) * Kd_ * N_;
+    b1 = 2 * Ki_ * N_ - 2 * pow(K, 2) * Kp_ - 2 * pow(K, 2) * Kd_ * N_;
+    b2 = pow(K, 2) * Kp_ - K * Ki_ + Ki_ * N_ - K * Kp_ * N_ + pow(K, 2) * Kd_ * N_;
+
+    a0 =  pow(K, 2) + N_ * K;
+    a1 = -2 * pow(K, 2);
+    a2 = pow(K, 2) - K * N_;
+
+    e2_ = e1_;
+    e1_ = e0_;
+    e0_ = setpoint - measurement;
+
+    y2_ = y1_;
+    y1_ = y0_;
+    y0_ = -a1 / a0 * y1_ - a2 / a0 * y2_ + b0 / a0 * e0_ +
+            b1 / a0 * e1_ + b2 / a0 * e2_;
+
+    // Output saturation
+    if (y0_ > outputSaturationUpper_)
+        y0_ = outputSaturationUpper_;
+    else if (y0_ < outputSaturationLower_)
+        y0_ = outputSaturationUpper_;
+
+    output_ = y0_;
     return output_;
 }
 

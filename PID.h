@@ -7,6 +7,7 @@ public:
     PIDController();
 
     float computeControlSignal(float, float);
+    float derivativeFilteredControlSignal(float, float);
 
     // Setters
     void setPIDCoeffs(float, float, float);
@@ -43,8 +44,13 @@ private:
     float integrator_;
     float differentiator_;
 
-    float prevError_; // Required for integrator
-    float prevMeasurement_; // Required for differentiator
+    // Classical PID variables
+    float prevError_;
+    float prevMeasurement_;
+
+    // Derivative filtered discrete PID variables
+    float e0_, e1_, e2_;
+    float y0_, y1_, y2_;
 
     // Controller output
     float output_;    
